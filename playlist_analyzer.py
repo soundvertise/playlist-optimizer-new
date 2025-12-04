@@ -20,119 +20,144 @@ except:
 # Custom CSS per lo stile Soundvertise (Viola/Azzurro/Scuro)
 st.markdown("""
 <style>
+    /* VARIABILI COLORE AGGIORNATE */
+    :root {
+        --bg-color: #0b0c15; /* Sfondo principale */
+        --card-bg: #161823;  /* Sfondo Card */
+        --border-color: #2a2d3e; /* Bordo sottile */
+        --accent-purple: #9d4edd; /* Viola principale */
+        --accent-blue: #00bfff; /* Azzurro Neon */
+        --accent-gradient: linear-gradient(90deg, #7b2cbf 0%, #00bfff 100%); /* Gradiente Bottone */
+        --text-color: #ffffff;
+        --text-secondary: #a0a0b0;
+        --score-critical: #ff4d4d; /* Rosso critico */
+    }
+
     /* Stili Generali */
-    [data-testid="stAppViewContainer"] { background-color: #0b0c15; color: #ffffff; }
+    [data-testid="stAppViewContainer"] { background-color: var(--bg-color); color: var(--text-color); }
+    
+    /* Stile Input e Focus */
     .stTextInput > div > div > input { 
-        background-color: #161823; 
-        color: white; 
-        border: 1px solid #2a2d3e; 
+        background-color: var(--card-bg); 
+        color: var(--text-color); 
+        border: 1px solid var(--border-color); 
         border-radius: 8px;
-        transition: border-color 0.3s; /* Transizione per il focus */
+        transition: border-color 0.3s;
     }
     .stTextInput > div > div > input:focus {
-        border-color: #00bfff; /* Bordo azzurro al focus */
+        border-color: var(--accent-blue); /* Bordo azzurro al focus */
+        box-shadow: 0 0 5px rgba(0, 191, 255, 0.5); /* Sottile glow azzurro */
     }
     
-    /* Stile Card */
+    /* Stile Card con Ombreggiatura Profonda */
     .css-card { 
-        background-color: #161823; 
-        border: 1px solid #2a2d3e; 
+        background-color: var(--card-bg); 
+        border: 1px solid var(--border-color); 
         border-radius: 12px; 
         padding: 25px;
-        margin-bottom: 20px; 
-        box-shadow: 0 4px 20px rgba(0,0,0,0.5); 
+        margin-bottom: 25px; /* Spaziatura maggiore tra le card */
+        /* Ombreggiatura più profonda, stile Soundvertise */
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7), 0 0 2px rgba(157, 78, 221, 0.2); 
     }
     
     /* Titolo H1 (Stile Neon Moderno) */
     h1 { 
-        background: linear-gradient(90deg, #7b2cbf 0%, #00bfff 100%); 
+        background: var(--accent-gradient); 
         -webkit-background-clip: text; 
         -webkit-text-fill-color: transparent; 
         text-align: center; 
         font-weight: 800; 
         font-size: 3rem;
         margin-bottom: 20px;
-        text-shadow: 0 0 15px rgba(157, 78, 221, 0.5); 
+        text-shadow: 0 0 20px rgba(157, 78, 221, 0.8); /* Glow più intenso */
     }
     
     /* Bottone Principale con Animazione */
     .stButton > button { 
-        width: 100%; 
-        background: linear-gradient(90deg, #7b2cbf 0%, #00bfff 100%); 
+        background: var(--accent-gradient); 
         color: white; 
-        font-weight: bold; 
-        border-radius: 8px;
-        transition: all 0.3s ease; /* Transizione per hover/active */
+        transition: all 0.3s ease;
     }
     .stButton > button:hover {
-        box-shadow: 0 0 20px rgba(0, 191, 255, 0.6); /* Neon glow azzurro */
-        transform: scale(1.01);
+        box-shadow: 0 0 25px rgba(0, 191, 255, 0.7); /* Neon glow azzurro potente */
+        transform: scale(1.02);
     }
     
-    /* Score Display */
-    .score-badge-good { color: #00bfff; font-size: 3.5rem; font-weight: bold; }
-    .score-badge-bad { color: #ff4d4d; font-size: 3.5rem; font-weight: bold; }
+    /* Score Display Generale */
+    .score-badge-good { color: var(--accent-blue); font-size: 3.5rem; font-weight: bold; }
+    .score-badge-bad { color: var(--score-critical); font-size: 3.5rem; font-weight: bold; }
 
-    /* Stile per la lista pulita */
+    /* Stile LISTA DETTAGLIO (Emulazione Colonna) */
     .track-item-clean {
-        display: flex;
+        display: grid;
+        grid-template-columns: 50px 45% 45px; /* Posizione | Artista/Brano | Score */
         align-items: center;
-        margin-bottom: 15px;
-        padding: 5px 0;
+        padding: 10px 0; 
         border-bottom: 1px solid #2a2d3e;
-        justify-content: space-between;
+        transition: background-color 0.2s;
     }
+    .track-item-clean:hover {
+        background-color: #1a1c28; /* Sfondo scuro al passaggio del mouse */
+    }
+    .track-list-header {
+        display: grid;
+        grid-template-columns: 50px 45% 45px; /* Deve corrispondere a track-item-clean */
+        color: var(--accent-blue);
+        font-weight: bold;
+        padding: 0 0 10px 0;
+        border-bottom: 2px solid var(--accent-purple); /* Sottolineatura header */
+        margin-bottom: 10px;
+        font-size: 0.9rem;
+    }
+    
     .track-name-artist {
-        flex-grow: 1;
-        font-size: 0.95rem;
         margin-left: 10px;
     }
     .track-score-value-clean {
         font-size: 1.2rem;
         font-weight: bold;
-        color: #ffffff;
+        color: var(--text-color); /* Bianco fisso */
         min-width: 50px;
         text-align: right;
         padding: 5px 10px;
         border-radius: 6px;
-        transition: background-color 0.3s; /* Animazione sul colore dello score */
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4); 
     }
     
     /* Colori del punteggio (solo sfondo del numero) */
-    .fill-high-bg { background-color: #00bfff; } 
-    .fill-medium-bg { background-color: #9d4edd; } 
-    .fill-low-bg { background-color: #ff4d4d; } 
+    .fill-high-bg { background-color: var(--accent-blue); } /* Azzurro */
+    .fill-medium-bg { background-color: var(--accent-purple); } /* Viola */
+    .fill-low-bg { background-color: var(--score-critical); } /* Rosso */
     
     .track-index { 
-        color: #00bfff;
+        color: var(--accent-blue); /* Azzurro per la posizione */
         font-weight: bold; 
         min-width: 35px; 
         text-align: right; 
         font-size: 1.1rem;
     }
-    .low-track-name { color: #ff4d4d; font-weight: bold; }
+    .low-track-name { color: var(--score-critical); font-weight: bold; }
     
     /* Stile Collapsible */
     .expander-header {
-        background-color: #161823; 
-        border: 1px solid #2a2d3e;
+        background-color: #1a1c28;
+        border: 1px solid #3c3e50;
         border-radius: 12px;
-        padding: 10px 20px;
-        color: #00bfff; 
+        padding: 12px 20px;
+        color: var(--accent-blue); 
         font-weight: bold;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
     }
     
-    /* Stile Radio Button (per la selezione Artista/Playlist) */
-    .stRadio > label {
-        color: #a0a0b0; 
-    }
-    .stRadio > div > div {
-        transition: background-color 0.3s;
-        border-radius: 8px;
-        padding: 5px;
-    }
-    .stRadio > div > div:hover {
-        background-color: #1a1c28; /* Sfondo leggero al passaggio del mouse */
+    /* Score Badge Imponente (Effetto Ludopatia/Diagnosi) */
+    .main-score-card {
+        text-align: center;
+        padding: 30px 20px;
+        margin-bottom: 25px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #161823 0%, #1a1c28 100%);
+        border: 2px solid var(--accent-purple);
+        box-shadow: 0 0 40px rgba(157, 78, 221, 0.3); /* Grande glow viola */
     }
 
 </style>
@@ -211,7 +236,7 @@ def get_analysis_data(analysis_type, identifier, client_id, client_secret):
                 all_tracks_data.append({
                     "position": index + 1,
                     "name": track['name'],
-                    "artist": artist['name'],
+                    "artist": track['artists'][0]['name'],
                     "score": track['popularity']
                 })
 
@@ -228,7 +253,7 @@ def get_analysis_data(analysis_type, identifier, client_id, client_secret):
     }
     
 def _render_track_with_bar(track):
-    """Helper function per il rendering del brano senza barre, solo numeri colorati."""
+    """Helper function per il rendering del brano senza barre, solo numeri colorati, con colonne."""
     score = track['score']
     
     if score >= 60:
@@ -240,12 +265,15 @@ def _render_track_with_bar(track):
         
     name_class = 'low-track-name' if score < 20 else ''
 
-    # Struttura HTML pulita (senza barre, solo indice, nome e punteggio colorato)
+    artist_name = track['artist']
+    song_name = track['name']
+
+    # Struttura HTML pulita (usando grid per emulare le colonne)
     track_html = f"""
     <div class="track-item-clean">
         <span class="track-index">#{track['position']}</span>
         <div class="track-name-artist">
-            <span class="{name_class}">{track['name']}</span> <i style='color:#a0a0b0'>by {track['artist']}</i>
+            <span class="{name_class}">{song_name}</span> <br> <i style='color:#a0a0b0'>{artist_name}</i>
         </div>
         <span class="track-score-value-clean {score_class}">
             {score}
@@ -291,7 +319,6 @@ with st.container():
 
 # 2. Popularity Score Explanation (Collassabile)
 with st.expander("📖 Clicca per Comprendere l'Indice di Popolarità"):
-    # Testo pulito, senza asterischi (richiesta utente)
     st.markdown("""
     <div class="css-card" style="margin-top: 0; padding: 15px;">
         <p>L'**Indice di Popolarità** (Punteggio da 0 a 100) misura l'attuale rilevanza e l'engagement di un brano o artista su Spotify. Il punteggio è relativo, non assoluto, e si basa su diversi fattori chiave:</p>
@@ -322,34 +349,31 @@ if analyze_btn:
                 st.session_state['data'] = analysis_data
                 st.rerun()
 
-# 3. Results Display
+# 3. Results Display (NUOVA STRUTTURA: Score imponente + Artwork centrato)
 if 'data' in st.session_state and st.session_state['data']:
     data = st.session_state['data']
     
     st.markdown(f"### 📈 Risultati Analisi per: {data['name']} ({data['total_tracks']} Tracks)")
     
-    col_img, col_score = st.columns([1, 2])
+    score_display = 'score-badge-good' if data['avg_pop'] >= 50 else 'score-badge-bad'
 
-    # Visualizzazione Artwork 
-    with col_img:
-        st.markdown('<div class="css-card" style="padding: 15px; text-align: center;">', unsafe_allow_html=True)
-        if data['image_url']:
-            # Per rendere l'immagine più moderna, la rendiamo un po' più grande
-            st.image(data['image_url'], width=180) 
-        else:
-            st.markdown("<p style='text-align:center;'>Artwork Non Trovato</p>", unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+    # 3.1 Punteggio Medio (Card ad alto impatto)
+    st.markdown('<div class="main-score-card">', unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align:center; margin-bottom: 0; color: var(--text-secondary);'>PUNTEGGIO POPOLARITÀ MEDIO FINALE</h4>", unsafe_allow_html=True)
+    st.markdown(f"<p style='text-align:center; margin-top: 5px;' class='{score_display}'>{data['avg_pop']}/100</p>", unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    # Visualizzazione Score Medio
-    with col_score:
-        score_display = 'score-badge-good' if data['avg_pop'] >= 50 else 'score-badge-bad'
-        st.markdown('<div class="css-card" style="height: 100%; display: flex; flex-direction: column; justify-content: center;">', unsafe_allow_html=True)
-        st.markdown("<h4 style='text-align:center; margin-bottom: 0;'>Punteggio Popolarità Medio</h4>", unsafe_allow_html=True)
-        st.markdown(f"<p style='text-align:center; margin-top: 5px;' class='{score_display}'>{data['avg_pop']}/100</p>", unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+    # 3.2 Artwork Centrato sotto il Punteggio
+    st.markdown('<div class="css-card" style="padding: 15px; text-align: center;">', unsafe_allow_html=True)
+    if data['image_url']:
+        # Mostra l'immagine centrata con una dimensione fissa moderna
+        st.image(data['image_url'], width=250) 
+    else:
+        st.markdown("<p style='text-align:center;'>Artwork Non Trovato</p>", unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
-    # 3.2 High-Risk Tracks (< 20 Score)
+    # 3.3 High-Risk Tracks (< 20 Score)
     low_risk_tracks = [t for t in data['all_tracks_data'] if t['score'] < 20]
     
     st.markdown("### 🚨 High-Risk Tracks (Score < 20)")
@@ -357,15 +381,33 @@ if 'data' in st.session_state and st.session_state['data']:
     if low_risk_tracks:
         st.warning(f"Trovati **{len(low_risk_tracks)}** brani con engagement estremamente basso. **Si suggerisce la Rimozione.**")
         st.markdown('<div class="css-card" style="max-height: 250px; overflow-y: auto;">', unsafe_allow_html=True)
+        # Intestazioni per la lista a rischio
+        st.markdown("""
+        <div class="track-list-header">
+            <span style="text-align: right;">POS.</span>
+            <span style="margin-left: 10px;">SONG / ARTIST</span>
+            <span style="text-align: right;">SCORE</span>
+        </div>
+        """, unsafe_allow_html=True)
         for track in low_risk_tracks:
             st.markdown(_render_track_with_bar(track), unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.success("Nessun brano ad alto rischio trovato (Score < 20). Ottima salute per la tua analisi!")
 
-    # 3.3 Detailed Track Breakdown (All Tracks)
+    # 3.4 Detailed Track Breakdown (All Tracks)
     st.markdown("### ⬇️ Dettaglio Completo Brani - Positions")
     st.markdown('<div class="css-card" style="max-height: 450px; overflow-y: auto;">', unsafe_allow_html=True)
+    
+    # Intestazioni per la lista completa
+    st.markdown("""
+    <div class="track-list-header">
+        <span style="text-align: right;">POS.</span>
+        <span style="margin-left: 10px;">SONG / ARTIST</span>
+        <span style="text-align: right;">SCORE</span>
+    </div>
+    """, unsafe_allow_html=True)
+    
     for track in data['all_tracks_data']:
         st.markdown(_render_track_with_bar(track), unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
