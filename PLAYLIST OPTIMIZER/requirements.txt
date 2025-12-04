@@ -1,5 +1,0 @@
-# Contenuto del file requirements.txt
-streamlit
-spotipy
-pandas
-numpy
