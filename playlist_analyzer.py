@@ -63,7 +63,7 @@ st.markdown("""
     
     /* Titolo H1 (Stile Neon Moderno) */
     h1 { 
-        background: var(--accent-gradient); 
+        background: linear-gradient(90deg, #7b2cbf 0%, #00bfff 100%); 
         -webkit-background-clip: text; 
         -webkit-text-fill-color: transparent; 
         text-align: center; 
@@ -290,10 +290,11 @@ def _render_track_with_bar(track):
     
     duplicate_tag = " (DUPLICATO)" if track.get('is_duplicate') else ""
     duplicate_class = "duplicate-name" if track.get('is_duplicate') else name_class
+    duplicate_row_class = "is-duplicate" if track.get('is_duplicate') else "" # Classe per colorare l'intera riga
 
     # Struttura HTML pulita (solo indice, nome e punteggio colorato)
     track_html = f"""
-    <div class="track-item-clean">
+    <div class="track-item-clean {duplicate_row_class}">
         <span class="track-index">#{track['position']}</span>
         <div class="track-name-artist">
             <span class="{duplicate_class}">{song_name}{duplicate_tag}</span> <br> <i style='color:#a0a0b0'>{artist_name}</i>
@@ -396,10 +397,10 @@ if 'data' in st.session_state and st.session_state['data']:
     st.markdown('</div>', unsafe_allow_html=True)
 
 
-    # 3.3 High-Risk Tracks (< 20 Score)
+    # 3.3 Low Popularity Tracks (< 20 Score)
     low_risk_tracks = [t for t in data['all_tracks_data'] if t['score'] < 20]
     
-    st.markdown("### 🚨 High-Risk Tracks (Score < 20)")
+    st.markdown("### 📉 Low Popularity Tracks (Score < 20)") # TESTO AGGIORNATO
     
     if low_risk_tracks:
         st.warning(f"Trovati **{len(low_risk_tracks)}** brani con engagement estremamente basso. **Si suggerisce la Rimozione.**")
@@ -416,7 +417,7 @@ if 'data' in st.session_state and st.session_state['data']:
             st.markdown(_render_track_with_bar(track), unsafe_allow_html=True)
         st.markdown('</div>', unsafe_allow_html=True)
     else:
-        st.success("Nessun brano ad alto rischio trovato (Score < 20). Ottima salute per la tua analisi!")
+        st.success("Nessun brano a bassa popolarità trovato (Score < 20). Ottima salute per la tua analisi!")
 
     # 3.4 Detailed Track Breakdown (All Tracks)
     st.markdown("### ⬇️ Dettaglio Completo Brani - Positions")
