@@ -30,10 +30,19 @@ st.markdown("""
         --accent-gradient: linear-gradient(90deg, #7b2cbf 0%, #00bfff 100%); /* Gradiente Bottone */
         --text-color: #ffffff;
         --text-secondary: #a0a0b0;
-        --critical-low-color: #3b0764; /* NUOVO: Viola Ultra Scuro (0-19) */
-        --low-score-color: #6a1a8c; /* Viola Scuro Intenso (20-39) */
         --duplicate-color: #ff9900; /* Arancione per i duplicati */
         --duplicate-row-bg: rgba(255, 153, 0, 0.1); /* Sfondo chiaro per la riga duplicata */
+        
+        /* NUOVI COLORI PER 9 FASCE (Viola Scuro a Azzurro Brillante) */
+        --c1: #3b0764; /* 0-11: Critico */
+        --c2: #510a80; /* 12-22: Basso */
+        --c3: #6a1a8c; /* 23-33: Basso-Medio */
+        --c4: #7b2cbf; /* 34-44: Medio-Basso */
+        --c5: #9d4edd; /* 45-55: Medio (Accent Purple) */
+        --c6: #b981f7; /* 56-66: Medio-Alto */
+        --c7: #8c42a8; /* 67-77: Alto */
+        --c8: #00bfff; /* 78-89: Molto Alto (Accent Blue) */
+        --c9: #00ffff; /* 90-100: Eccellente */
     }
 
     /* Stili Generali */
@@ -118,13 +127,17 @@ st.markdown("""
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4); 
     }
     
-    /* Colori del punteggio (Sfondo del numero - 5 sfumature) */
-    .fill-excellent-bg { background-color: var(--accent-blue); } /* 90-100 */
-    .fill-good-bg { background-color: #4a148c; } /* NUOVO: 60-89 */
-    .fill-average-bg { background-color: var(--accent-purple); } /* 40-59 */
-    .fill-low-bg { background-color: var(--low-score-color); } /* 20-39 */
-    .fill-critical-bg { background-color: var(--critical-low-color); } /* 0-19 */
-
+    /* Colori del punteggio (Sfondo del numero - 9 sfumature) */
+    .fill-c1-bg { background-color: var(--c1); }
+    .fill-c2-bg { background-color: var(--c2); }
+    .fill-c3-bg { background-color: var(--c3); }
+    .fill-c4-bg { background-color: var(--c4); }
+    .fill-c5-bg { background-color: var(--c5); }
+    .fill-c6-bg { background-color: var(--c6); }
+    .fill-c7-bg { background-color: var(--c7); }
+    .fill-c8-bg { background-color: var(--c8); }
+    .fill-c9-bg { background-color: var(--c9); }
+    
     /* Barra di Progresso Dettaglio */
     .score-bar-small {
         width: 80px; 
@@ -143,11 +156,16 @@ st.markdown("""
     }
 
     /* Colori per il Riempimento Barra (Gradienti) */
-    .bar-excellent { background: linear-gradient(90deg, #00bfff, #7b2cbf); }
-    .bar-good { background: linear-gradient(90deg, #9d4edd, #4a148c); }
-    .bar-average { background: linear-gradient(90deg, #b981f7, #9d4edd); }
-    .bar-low { background: linear-gradient(90deg, #8c42a8, #6a1a8c); }
-    .bar-critical { background: linear-gradient(90deg, #510a80, #3b0764); }
+    .bar-c1 { background: linear-gradient(90deg, var(--c1), var(--c2)); }
+    .bar-c2 { background: linear-gradient(90deg, var(--c2), var(--c3)); }
+    .bar-c3 { background: linear-gradient(90deg, var(--c3), var(--c4)); }
+    .bar-c4 { background: linear-gradient(90deg, var(--c4), var(--c5)); }
+    .bar-c5 { background: linear-gradient(90deg, var(--c5), var(--c6)); }
+    .bar-c6 { background: linear-gradient(90deg, var(--c6), var(--c7)); }
+    .bar-c7 { background: linear-gradient(90deg, var(--c7), var(--c8)); }
+    .bar-c8 { background: linear-gradient(90deg, var(--c8), var(--c9)); }
+    .bar-c9 { background: linear-gradient(90deg, var(--c9), var(--accent-blue)); }
+
     
     .track-index { color: var(--accent-blue); }
     .low-track-name { color: var(--low-score-color); font-weight: bold; }
@@ -280,34 +298,45 @@ def get_analysis_data(analysis_type, identifier, client_id, client_secret):
     total_pop = sum(t['score'] for t in all_tracks_data)
     avg_pop = int(total_pop / len(all_tracks_data)) if all_tracks_data else 0
     
+    # Calcolo dei duplicati totali
+    total_duplicates = sum(1 for t in all_tracks_data if t['is_duplicate'])
+
     return {
         "name": name,
         "avg_pop": avg_pop,
         "all_tracks_data": all_tracks_data,
         "total_tracks": len(all_tracks_data),
-        "image_url": image_url
+        "image_url": image_url,
+        "total_duplicates": total_duplicates
     }
     
+def _get_score_classes(score):
+    """Determina le classi CSS per lo score in base a 9 intervalli."""
+    if score >= 90:
+        return 'fill-c9-bg', 'bar-c9'
+    elif score >= 78:
+        return 'fill-c8-bg', 'bar-c8'
+    elif score >= 67:
+        return 'fill-c7-bg', 'bar-c7'
+    elif score >= 56:
+        return 'fill-c6-bg', 'bar-c6'
+    elif score >= 45:
+        return 'fill-c5-bg', 'bar-c5'
+    elif score >= 34:
+        return 'fill-c4-bg', 'bar-c4'
+    elif score >= 23:
+        return 'fill-c3-bg', 'bar-c3'
+    elif score >= 12:
+        return 'fill-c2-bg', 'bar-c2'
+    else:
+        return 'fill-c1-bg', 'bar-c1'
+
 def _render_track_with_bar(track):
-    """Helper function per il rendering del brano con barre sottili e numeri colorati, usando 5 sfumature."""
+    """Helper function per il rendering del brano con barre sottili e numeri colorati."""
     score = track['score']
     
     # 1. Determinazione classi colore
-    if score >= 90:
-        score_class = 'fill-excellent-bg'
-        bar_color = 'bar-excellent'
-    elif score >= 60:
-        score_class = 'fill-good-bg'
-        bar_color = 'bar-good'
-    elif score >= 40:
-        score_class = 'fill-average-bg'
-        bar_color = 'bar-average'
-    elif score >= 20:
-        score_class = 'fill-low-bg' 
-        bar_color = 'bar-low'
-    else:
-        score_class = 'fill-critical-bg'
-        bar_color = 'bar-critical'
+    score_class, bar_color = _get_score_classes(score)
         
     name_class = 'low-track-name' if score < 20 else ''
     
@@ -414,16 +443,26 @@ if 'data' in st.session_state and st.session_state['data']:
     
     score_display = 'score-badge-good' if data['avg_pop'] >= 50 else 'score-badge-bad'
     avg_score = data['avg_pop']
-
+    
     # Determina il colore e la larghezza della barra principale
     if avg_score >= 90:
-        main_bar_color = 'linear-gradient(90deg, #00bfff, #7b2cbf)' # Excellent
-    elif avg_score >= 60:
-        main_bar_color = 'linear-gradient(90deg, #9d4edd, #4a148c)' # Good
-    elif avg_score >= 40:
-        main_bar_color = 'linear-gradient(90deg, #b981f7, #9d4edd)' # Average
+        main_bar_color = 'linear-gradient(90deg, var(--c9), var(--c8))' # Excellent
+    elif avg_score >= 78:
+        main_bar_color = 'linear-gradient(90deg, var(--c8), var(--c7))' # Very High
+    elif avg_score >= 67:
+        main_bar_color = 'linear-gradient(90deg, var(--c7), var(--c6))' # High
+    elif avg_score >= 56:
+        main_bar_color = 'linear-gradient(90deg, var(--c6), var(--c5))' # Above Average
+    elif avg_score >= 45:
+        main_bar_color = 'linear-gradient(90deg, var(--c5), var(--c4))' # Average
+    elif avg_score >= 34:
+        main_bar_color = 'linear-gradient(90deg, var(--c4), var(--c3))' # Below Average
+    elif avg_score >= 23:
+        main_bar_color = 'linear-gradient(90deg, var(--c3), var(--c2))' # Low
+    elif avg_score >= 12:
+        main_bar_color = 'linear-gradient(90deg, var(--c2), var(--c1))' # Very Low
     else:
-        main_bar_color = 'linear-gradient(90deg, #8c42a8, #6a1a8c)' # Low/Critical
+        main_bar_color = 'linear-gradient(90deg, var(--c1), var(--c1))' # Critical
 
     # 3.1 Punteggio Medio (Card ad alto impatto)
     st.markdown('<div class="main-score-card">', unsafe_allow_html=True)
@@ -438,6 +477,10 @@ if 'data' in st.session_state and st.session_state['data']:
     """, unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Badge Duplicati
+    total_duplicates = data.get('total_duplicates', 0)
+    st.info(f"📋 **Conteggio Duplicati:** Trovati **{total_duplicates}** brani duplicati in questa analisi.")
 
     # 3.2 Artwork Centrato sotto il Punteggio
     st.markdown('<div class="css-card" style="padding: 15px; text-align: center;">', unsafe_allow_html=True)
