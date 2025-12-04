@@ -30,7 +30,8 @@ st.markdown("""
         --accent-gradient: linear-gradient(90deg, #7b2cbf 0%, #00bfff 100%); /* Gradiente Bottone */
         --text-color: #ffffff;
         --text-secondary: #a0a0b0;
-        --score-critical: #ff4d4d; /* Rosso critico */
+        --low-score-color: #6a1a8c; /* NUOVO: Viola Scuro Intenso per score critici */
+        --duplicate-color: #ff9900; /* Arancione per i duplicati */
     }
 
     /* Stili Generali */
@@ -85,7 +86,8 @@ st.markdown("""
     
     /* Score Display Generale */
     .score-badge-good { color: var(--accent-blue); font-size: 3.5rem; font-weight: bold; }
-    .score-badge-bad { color: var(--score-critical); font-size: 3.5rem; font-weight: bold; }
+    /* Correggi colore per bad score usando viola scuro per coerenza estetica */
+    .score-badge-bad { color: var(--accent-purple); font-size: 3.5rem; font-weight: bold; }
 
     /* Stile LISTA DETTAGLIO (Emulazione Colonna) */
     .track-item-clean {
@@ -127,7 +129,7 @@ st.markdown("""
     /* Colori del punteggio (solo sfondo del numero) */
     .fill-high-bg { background-color: var(--accent-blue); } /* Azzurro */
     .fill-medium-bg { background-color: var(--accent-purple); } /* Viola */
-    .fill-low-bg { background-color: var(--score-critical); } /* Rosso */
+    .fill-low-bg { background-color: var(--low-score-color); } /* NUOVO: Viola Scuro Intenso */
     
     .track-index { 
         color: var(--accent-blue); /* Azzurro per la posizione */
@@ -136,7 +138,8 @@ st.markdown("""
         text-align: right; 
         font-size: 1.1rem;
     }
-    .low-track-name { color: var(--score-critical); font-weight: bold; }
+    .low-track-name { color: var(--low-score-color); font-weight: bold; }
+    .duplicate-name { color: var(--duplicate-color); font-style: italic; font-weight: bold; } /* Stile duplicati */
     
     /* Stile Collapsible */
     .expander-header {
@@ -172,6 +175,7 @@ def get_analysis_data(analysis_type, identifier, client_id, client_secret):
     sp = spotipy.Spotify(auth_manager=auth_manager)
     
     all_tracks_data = []
+    track_identifiers = {} # Usato per rilevare duplicati (ID Spotify del brano)
     
     if analysis_type == "Playlist":
         # Pulizia URL per ottenere ID
@@ -188,11 +192,18 @@ def get_analysis_data(analysis_type, identifier, client_id, client_secret):
         for index, item in enumerate(tracks):
             track = item['track']
             if track:
+                track_id = track['id']
+                
+                # Rilevamento duplicati
+                is_duplicate = track_id in track_identifiers
+                track_identifiers[track_id] = True
+
                 all_tracks_data.append({
                     "position": index + 1,
                     "name": track['name'],
                     "artist": track['artists'][0]['name'],
-                    "score": track['popularity']
+                    "score": track['popularity'],
+                    "is_duplicate": is_duplicate
                 })
                 
     elif analysis_type == "Artista":
@@ -227,17 +238,17 @@ def get_analysis_data(analysis_type, identifier, client_id, client_secret):
         name = f"Top Tracks di {artist['name']}"
         image_url = artist['images'][0]['url'] if artist['images'] else None
         
-        # Se l'artista è stato trovato, carica le tracce.
+        # Se l'artista è stato trovato, carica le tracce. (Top Tracks non contengono duplicati per natura)
         top_tracks = sp.artist_top_tracks(artist_id)['tracks']
         
         for index, track in enumerate(top_tracks):
-            # Aggiunto controllo di sicurezza per 'track'
             if track:
                 all_tracks_data.append({
                     "position": index + 1,
                     "name": track['name'],
-                    "artist": track['artists'][0]['name'],
-                    "score": track['popularity']
+                    "artist": artist['name'],
+                    "score": track['popularity'],
+                    "is_duplicate": False # Non applicabile alle Top Tracks
                 })
 
     # Calcolo della Popolarità Media
@@ -261,19 +272,22 @@ def _render_track_with_bar(track):
     elif score >= 20:
         score_class = 'fill-medium-bg'
     else:
-        score_class = 'fill-low-bg'
+        score_class = 'fill-low-bg' # Usa il nuovo colore viola scuro per score bassi
         
     name_class = 'low-track-name' if score < 20 else ''
-
+    
     artist_name = track['artist']
     song_name = track['name']
+    
+    duplicate_tag = " (DUPLICATO)" if track.get('is_duplicate') else ""
+    duplicate_class = "duplicate-name" if track.get('is_duplicate') else name_class
 
-    # Struttura HTML pulita (usando grid per emulare le colonne)
+    # Struttura HTML pulita (solo indice, nome e punteggio colorato)
     track_html = f"""
     <div class="track-item-clean">
         <span class="track-index">#{track['position']}</span>
         <div class="track-name-artist">
-            <span class="{name_class}">{song_name}</span> <br> <i style='color:#a0a0b0'>{artist_name}</i>
+            <span class="{duplicate_class}">{song_name}{duplicate_tag}</span> <br> <i style='color:#a0a0b0'>{artist_name}</i>
         </div>
         <span class="track-score-value-clean {score_class}">
             {score}
