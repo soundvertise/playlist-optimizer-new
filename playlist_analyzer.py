@@ -168,7 +168,7 @@ st.markdown("""
 
     
     .track-index { color: var(--accent-blue); }
-    .low-track-name { color: var(--low-score-color); font-weight: bold; }
+    .low-track-name { color: var(--c3); font-weight: bold; } /* Usa c3 per low score text */
     .duplicate-name { color: var(--duplicate-color); font-style: italic; font-weight: bold; } 
     
     /* Score Badge Imponente (Effetto Ludopatia/Diagnosi) */
@@ -208,7 +208,9 @@ def get_analysis_data(analysis_type, identifier, client_id, client_secret):
     sp = spotipy.Spotify(auth_manager=auth_manager)
     
     all_tracks_data = []
-    track_identifiers = {} # Usato per rilevare duplicati (ID Spotify del brano)
+    track_identifiers = set() # Usato per rilevare duplicati (ID Spotify del brano)
+    processed_track_ids = set() # Usato per tracciare i brani unici dell'artista
+
     
     if analysis_type == "Playlist":
         # Pulizia URL per ottenere ID
@@ -234,10 +236,9 @@ def get_analysis_data(analysis_type, identifier, client_id, client_secret):
                 if track and track.get('id'): 
                     track_id = track['id']
                     
-                    # Rilevamento duplicati
+                    # Rilevamento duplicati (se l'ID è già stato aggiunto una volta)
                     is_duplicate = track_id in track_identifiers
-                    if not is_duplicate:
-                        track_identifiers[track_id] = True
+                    track_identifiers.add(track_id) # Aggiungi l'ID dopo il controllo per contrassegnare le occorrenze successive
 
                     all_tracks_data.append({
                         "position": index + 1,
@@ -252,7 +253,7 @@ def get_analysis_data(analysis_type, identifier, client_id, client_secret):
     elif analysis_type == "Artista":
         artist_id = None
         
-        # 1. Tentativo di estrarre l'ID da URL/URI
+        # 1. Trova l'ID dell'artista (URL, URI o Ricerca)
         if "spotify.com/artist/" in identifier:
             artist_id = identifier.split("/")[-1].split("?")[0]
         elif identifier.startswith("spotify:artist:"):
@@ -262,14 +263,11 @@ def get_analysis_data(analysis_type, identifier, client_id, client_secret):
         
         if artist_id:
             try:
-                # Se abbiamo un ID valido, carichiamo i dettagli
                 artist = sp.artist(artist_id)
             except Exception:
-                # Se l'ID non è valido, si procede alla ricerca per nome
                 artist_id = None 
 
         if not artist_id:
-            # 2. Se l'ID non è stato trovato o non è valido, eseguiamo la ricerca per nome
             results = sp.search(q='artist:' + identifier, type='artist')
             items = results['artists']['items']
             if not items:
@@ -277,22 +275,44 @@ def get_analysis_data(analysis_type, identifier, client_id, client_secret):
             artist = items[0]
             artist_id = artist['id']
         
-        # 3. Ottiene le top track dell'artista (non necessita paginazione, sono max 10)
-        name = f"Top Tracks di {artist['name']}"
+        # 2. Ottieni i metadati
+        name = f"Tutti i Brani di {artist['name']}"
         image_url = artist['images'][0]['url'] if artist['images'] else None
         
-        # Se l'artista è stato trovato, carica le tracce.
-        top_tracks = sp.artist_top_tracks(artist_id)['tracks']
+        # 3. Ottieni tutti gli album dell'artista
+        albums_results = sp.artist_albums(artist_id, album_type='album,single,compilation', country='US') # Puoi cambiare 'US' con il tuo mercato di riferimento
+        album_ids = []
         
-        for index, track in enumerate(top_tracks):
-            if track:
-                all_tracks_data.append({
-                    "position": index + 1,
-                    "name": track['name'],
-                    "artist": track['artists'][0]['name'],
-                    "score": track['popularity'],
-                    "is_duplicate": False # Non applicabile alle Top Tracks
-                })
+        while albums_results:
+            for album in albums_results['items']:
+                # Filtra solo gli album dove l'artista è l'artista principale
+                if album['album_type'] != 'compilation' or any(a['id'] == artist_id for a in album['artists']):
+                     album_ids.append(album['id'])
+            albums_results = sp.next(albums_results) if albums_results['next'] else None
+
+        # 4. Recupera le tracce da ogni album (gestendo duplicati tra album)
+        position_counter = 0
+        for album_id in set(album_ids): # Usa set per eliminare album duplicati (es. riedizioni)
+            try:
+                tracks_results = sp.album_tracks(album_id)
+                for track in tracks_results['items']:
+                    if track and track.get('id'):
+                        track_id = track['id']
+                        
+                        if track_id not in processed_track_ids:
+                            position_counter += 1
+                            processed_track_ids.add(track_id)
+                            
+                            all_tracks_data.append({
+                                "position": position_counter,
+                                "name": track['name'],
+                                "artist": artist['name'],
+                                "score": track['popularity'],
+                                "is_duplicate": False # Vengono gestiti a monte tramite processed_track_ids
+                            })
+            except Exception as e:
+                 # Ignora gli album non disponibili
+                 pass 
 
     # Calcolo della Popolarità Media
     total_pop = sum(t['score'] for t in all_tracks_data)
