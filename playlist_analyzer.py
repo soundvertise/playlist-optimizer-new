@@ -208,9 +208,7 @@ def get_analysis_data(analysis_type, identifier, client_id, client_secret):
     sp = spotipy.Spotify(auth_manager=auth_manager)
     
     all_tracks_data = []
-    track_identifiers = set() # Usato per rilevare duplicati (ID Spotify del brano)
-    processed_track_ids = set() # Usato per tracciare i brani unici dell'artista
-
+    track_identifiers = set() 
     
     if analysis_type == "Playlist":
         # Pulizia URL per ottenere ID
@@ -236,9 +234,9 @@ def get_analysis_data(analysis_type, identifier, client_id, client_secret):
                 if track and track.get('id'): 
                     track_id = track['id']
                     
-                    # Rilevamento duplicati (se l'ID è già stato aggiunto una volta)
+                    # Rilevamento duplicati 
                     is_duplicate = track_id in track_identifiers
-                    track_identifiers.add(track_id) # Aggiungi l'ID dopo il controllo per contrassegnare le occorrenze successive
+                    track_identifiers.add(track_id)
 
                     all_tracks_data.append({
                         "position": index + 1,
@@ -276,43 +274,36 @@ def get_analysis_data(analysis_type, identifier, client_id, client_secret):
             artist_id = artist['id']
         
         # 2. Ottieni i metadati
-        name = f"Tutti i Brani di {artist['name']}"
+        name = f"Top 50 Tracks di {artist['name']}" # TITOLO AGGIORNATO
         image_url = artist['images'][0]['url'] if artist['images'] else None
         
-        # 3. Ottieni tutti gli album dell'artista
-        albums_results = sp.artist_albums(artist_id, album_type='album,single,compilation', country='US') # Puoi cambiare 'US' con il tuo mercato di riferimento
-        album_ids = []
+        # 3. RECUPERO TRACCE: Usa Top Tracks Globali (limite max 50) per stabilità e rilevanza
         
-        while albums_results:
-            for album in albums_results['items']:
-                # Filtra solo gli album dove l'artista è l'artista principale
-                if album['album_type'] != 'compilation' or any(a['id'] == artist_id for a in album['artists']):
-                     album_ids.append(album['id'])
-            albums_results = sp.next(albums_results) if albums_results['next'] else None
+        # Ottiene le top track globali (max 50) 
+        top_tracks_results = sp.artist_top_tracks(artist_id)['tracks']
+        
+        # Gestione della paginazione per Top Tracks (anche se limitata a 50)
+        tracks_list = []
+        for track in top_tracks_results:
+             # Ottiene informazioni dettagliate sul brano, inclusa la popolarità globale
+             tracks_list.append(sp.track(track['id']))
 
-        # 4. Recupera le tracce da ogni album (gestendo duplicati tra album)
-        position_counter = 0
-        for album_id in set(album_ids): # Usa set per eliminare album duplicati (es. riedizioni)
-            try:
-                tracks_results = sp.album_tracks(album_id)
-                for track in tracks_results['items']:
-                    if track and track.get('id'):
-                        track_id = track['id']
-                        
-                        if track_id not in processed_track_ids:
-                            position_counter += 1
-                            processed_track_ids.add(track_id)
-                            
-                            all_tracks_data.append({
-                                "position": position_counter,
-                                "name": track['name'],
-                                "artist": artist['name'],
-                                "score": track['popularity'],
-                                "is_duplicate": False # Vengono gestiti a monte tramite processed_track_ids
-                            })
-            except Exception as e:
-                 # Ignora gli album non disponibili
-                 pass 
+
+        for index, track in enumerate(tracks_list):
+            if track:
+                track_id = track['id']
+                
+                # Rilevamento duplicati (anche se raro nelle Top Tracks, è un buon controllo)
+                is_duplicate = track_id in track_identifiers
+                track_identifiers.add(track_id)
+
+                all_tracks_data.append({
+                    "position": index + 1,
+                    "name": track['name'],
+                    "artist": track['artists'][0]['name'],
+                    "score": track['popularity'],
+                    "is_duplicate": is_duplicate
+                })
 
     # Calcolo della Popolarità Media
     total_pop = sum(t['score'] for t in all_tracks_data)
