@@ -22,7 +22,16 @@ st.markdown("""
 <style>
     /* Stili Generali */
     [data-testid="stAppViewContainer"] { background-color: #0b0c15; color: #ffffff; }
-    .stTextInput > div > div > input { background-color: #161823; color: white; border: 1px solid #2a2d3e; border-radius: 8px; }
+    .stTextInput > div > div > input { 
+        background-color: #161823; 
+        color: white; 
+        border: 1px solid #2a2d3e; 
+        border-radius: 8px;
+        transition: border-color 0.3s; /* Transizione per il focus */
+    }
+    .stTextInput > div > div > input:focus {
+        border-color: #00bfff; /* Bordo azzurro al focus */
+    }
     
     /* Stile Card */
     .css-card { 
@@ -45,69 +54,58 @@ st.markdown("""
         margin-bottom: 20px;
         text-shadow: 0 0 15px rgba(157, 78, 221, 0.5); 
     }
+    
+    /* Bottone Principale con Animazione */
     .stButton > button { 
         width: 100%; 
         background: linear-gradient(90deg, #7b2cbf 0%, #00bfff 100%); 
         color: white; 
         font-weight: bold; 
-        border-radius: 8px; 
+        border-radius: 8px;
+        transition: all 0.3s ease; /* Transizione per hover/active */
+    }
+    .stButton > button:hover {
+        box-shadow: 0 0 20px rgba(0, 191, 255, 0.6); /* Neon glow azzurro */
+        transform: scale(1.01);
     }
     
     /* Score Display */
     .score-badge-good { color: #00bfff; font-size: 3.5rem; font-weight: bold; }
     .score-badge-bad { color: #ff4d4d; font-size: 3.5rem; font-weight: bold; }
 
-    /* Stile per le barre di progresso */
-    .track-bar-container {
+    /* Stile per la lista pulita */
+    .track-item-clean {
         display: flex;
         align-items: center;
         margin-bottom: 15px;
         padding: 5px 0;
         border-bottom: 1px solid #2a2d3e;
+        justify-content: space-between;
     }
     .track-name-artist {
-        width: 100%;
+        flex-grow: 1;
         font-size: 0.95rem;
-    }
-    .track-score-display-area {
-        width: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-left: 15px;
-    }
-    .track-score-value {
-        font-size: 1.1rem;
-        font-weight: bold;
-        color: #ffffff; /* Punteggio sempre bianco (richiesta utente) */
-        min-width: 40px;
-        text-align: right;
-    }
-    .track-score-bar-wrapper {
-        width: 80%;
-        height: 18px;
-        background-color: #2a2d3e; 
-        border-radius: 9px;
-        overflow: hidden;
         margin-left: 10px;
-        position: relative;
     }
-    .track-score-fill {
-        height: 100%;
-        border-radius: 9px;
-        position: absolute;
-        top: 0;
-        left: 0;
+    .track-score-value-clean {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #ffffff;
+        min-width: 50px;
+        text-align: right;
+        padding: 5px 10px;
+        border-radius: 6px;
+        transition: background-color 0.3s; /* Animazione sul colore dello score */
     }
-    /* Bar Colors (Viola/Azzurro) */
-    .fill-high { background: linear-gradient(90deg, #9d4edd, #00bfff); } /* Ottimo: Viola a Azzurro */
-    .fill-medium { background: linear-gradient(90deg, #7b2cbf, #9d4edd); } /* Medio: Viola */
-    .fill-low { background: linear-gradient(90deg, #cc0000, #ff4d4d); } /* Critico: Rosso */
+    
+    /* Colori del punteggio (solo sfondo del numero) */
+    .fill-high-bg { background-color: #00bfff; } 
+    .fill-medium-bg { background-color: #9d4edd; } 
+    .fill-low-bg { background-color: #ff4d4d; } 
     
     .track-index { 
-        color: #00bfff; /* Azzurro per la posizione */
+        color: #00bfff;
         font-weight: bold; 
-        margin-right: 15px; 
         min-width: 35px; 
         text-align: right; 
         font-size: 1.1rem;
@@ -123,6 +121,20 @@ st.markdown("""
         color: #00bfff; 
         font-weight: bold;
     }
+    
+    /* Stile Radio Button (per la selezione Artista/Playlist) */
+    .stRadio > label {
+        color: #a0a0b0; 
+    }
+    .stRadio > div > div {
+        transition: background-color 0.3s;
+        border-radius: 8px;
+        padding: 5px;
+    }
+    .stRadio > div > div:hover {
+        background-color: #1a1c28; /* Sfondo leggero al passaggio del mouse */
+    }
+
 </style>
 """, unsafe_allow_html=True)
 
@@ -137,10 +149,13 @@ def get_analysis_data(analysis_type, identifier, client_id, client_secret):
     all_tracks_data = []
     
     if analysis_type == "Playlist":
-        st.info(f"Analisi della Playlist in corso: {identifier}")
         # Pulizia URL per ottenere ID
         playlist_id = identifier.split("/")[-1].split("?")[0]
-        results = sp.playlist(playlist_id)
+        try:
+            results = sp.playlist(playlist_id)
+        except Exception:
+            return {"error": f"ID/URL Playlist non valido: {identifier}"}
+
         tracks = results['tracks']['items']
         name = results['name']
         image_url = results['images'][0]['url'] if results['images'] else None
@@ -156,28 +171,49 @@ def get_analysis_data(analysis_type, identifier, client_id, client_secret):
                 })
                 
     elif analysis_type == "Artista":
-        # Cerca l'artista per nome per ottenere l'ID
-        results = sp.search(q='artist:' + identifier, type='artist')
-        items = results['artists']['items']
-        if not items:
-            return {"error": f"Artista non trovato: {identifier}"}
-            
-        artist = items[0]
-        artist_id = artist['id']
+        artist_id = None
+        
+        # 1. Tentativo di estrarre l'ID da URL/URI
+        if "spotify.com/artist/" in identifier:
+            artist_id = identifier.split("/")[-1].split("?")[0]
+        elif identifier.startswith("spotify:artist:"):
+            artist_id = identifier.split(":")[-1]
+        
+        artist = None
+        
+        if artist_id:
+            try:
+                # Se abbiamo un ID valido, carichiamo i dettagli
+                artist = sp.artist(artist_id)
+            except Exception:
+                # Se l'ID non è valido, si procede alla ricerca per nome
+                artist_id = None 
+
+        if not artist_id:
+            # 2. Se l'ID non è stato trovato o non è valido, eseguiamo la ricerca per nome
+            results = sp.search(q='artist:' + identifier, type='artist')
+            items = results['artists']['items']
+            if not items:
+                return {"error": f"Artista non trovato con il nome o l'URL/ID fornito: {identifier}"}
+            artist = items[0]
+            artist_id = artist['id']
+        
+        # 3. Ottiene le top track dell'artista
         name = f"Top Tracks di {artist['name']}"
         image_url = artist['images'][0]['url'] if artist['images'] else None
-        st.info(f"Analisi delle Top 10 Tracks per: {artist['name']}")
         
-        # Ottiene le top track dell'artista
+        # Se l'artista è stato trovato, carica le tracce.
         top_tracks = sp.artist_top_tracks(artist_id)['tracks']
         
         for index, track in enumerate(top_tracks):
-            all_tracks_data.append({
-                "position": index + 1,
-                "name": track['name'],
-                "artist": artist['name'],
-                "score": track['popularity']
-            })
+            # Aggiunto controllo di sicurezza per 'track'
+            if track:
+                all_tracks_data.append({
+                    "position": index + 1,
+                    "name": track['name'],
+                    "artist": artist['name'],
+                    "score": track['popularity']
+                })
 
     # Calcolo della Popolarità Media
     total_pop = sum(t['score'] for t in all_tracks_data)
@@ -192,37 +228,28 @@ def get_analysis_data(analysis_type, identifier, client_id, client_secret):
     }
     
 def _render_track_with_bar(track):
-    """Helper function per il rendering della barra di progresso personalizzata."""
+    """Helper function per il rendering del brano senza barre, solo numeri colorati."""
     score = track['score']
     
     if score >= 60:
-        score_class = 'fill-high'
+        score_class = 'fill-high-bg'
     elif score >= 20:
-        score_class = 'fill-medium'
+        score_class = 'fill-medium-bg'
     else:
-        score_class = 'fill-low'
+        score_class = 'fill-low-bg'
         
     name_class = 'low-track-name' if score < 20 else ''
 
-    # Larghezza minima per visualizzare il testo del punteggio
-    bar_width = max(score, 3) 
-    
-    # Struttura HTML con punteggio all'esterno (richiesta utente)
+    # Struttura HTML pulita (senza barre, solo indice, nome e punteggio colorato)
     track_html = f"""
-    <div class="track-bar-container">
-        <div class="track-info-area">
-            <span class="track-index">#{track['position']}</span>
-            <div class="track-name-artist">
-                <span class="{name_class}">{track['name']}</span> <i style='color:#a0a0b0'>by {track['artist']}</i>
-            </div>
+    <div class="track-item-clean">
+        <span class="track-index">#{track['position']}</span>
+        <div class="track-name-artist">
+            <span class="{name_class}">{track['name']}</span> <i style='color:#a0a0b0'>by {track['artist']}</i>
         </div>
-        <div class="track-score-display-area">
-            <span class="track-score-value">{score}</span>
-            <div class="track-score-bar-wrapper">
-                <div class="track-score-fill {score_class}" style="width: {bar_width}%;">
-                </div>
-            </div>
-        </div>
+        <span class="track-score-value-clean {score_class}">
+            {score}
+        </span>
     </div>
     """
     return track_html
@@ -248,7 +275,7 @@ with st.container():
     if analysis_type == "Playlist":
         placeholder = "🔗 Incolla qui l'URL della Playlist Spotify..."
     else:
-        placeholder = "✍️ Inserisci il nome completo dell'Artista..."
+        placeholder = "✍️ Inserisci il nome completo dell'Artista o l'URL Spotify..."
         
     identifier = st.text_input(placeholder)
 
@@ -264,13 +291,14 @@ with st.container():
 
 # 2. Popularity Score Explanation (Collassabile)
 with st.expander("📖 Clicca per Comprendere l'Indice di Popolarità"):
+    # Testo pulito, senza asterischi (richiesta utente)
     st.markdown("""
     <div class="css-card" style="margin-top: 0; padding: 15px;">
         <p>L'**Indice di Popolarità** (Punteggio da 0 a 100) misura l'attuale rilevanza e l'engagement di un brano o artista su Spotify. Il punteggio è relativo, non assoluto, e si basa su diversi fattori chiave:</p>
         <ul style="list-style-type: disc; padding-left: 20px;">
             <li>**Frequenza di Streaming:** Il numero totale di ascolti recenti.</li>
             <li>**Tasso di Salvataggio:** Quante volte gli utenti aggiungono il contenuto alle loro librerie o playlist.</li>
-            <li>**Tasso di Salto & Completezza:** Quanto spesso gli utenti ascoltano l'intero brano.</li>
+            <li>**Tasso di Salto e Completezza:** Quanto spesso gli utenti ascoltano l'intero brano.</li>
         </ul>
         <p>Questo indice è vitale, poiché l'algoritmo di Spotify favorisce i contenuti con una maggiore popolarità relativa, migliorandone la scopribilità (discoverability).</p>
     </div>
