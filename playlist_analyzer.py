@@ -180,31 +180,40 @@ def get_analysis_data(analysis_type, identifier, client_id, client_secret):
     if analysis_type == "Playlist":
         # Pulizia URL per ottenere ID
         playlist_id = identifier.split("/")[-1].split("?")[0]
-        try:
-            results = sp.playlist(playlist_id)
-        except Exception:
-            return {"error": f"ID/URL Playlist non valido: {identifier}"}
-
-        tracks = results['tracks']['items']
-        name = results['name']
-        image_url = results['images'][0]['url'] if results['images'] else None
         
-        for index, item in enumerate(tracks):
-            track = item['track']
-            if track:
-                track_id = track['id']
-                
-                # Rilevamento duplicati
-                is_duplicate = track_id in track_identifiers
-                track_identifiers[track_id] = True
+        try:
+            # 1. Ottieni i metadati della playlist (nome, immagine)
+            metadata = sp.playlist(playlist_id, fields='name,images')
+            name = metadata['name']
+            image_url = metadata['images'][0]['url'] if metadata['images'] else None
 
-                all_tracks_data.append({
-                    "position": index + 1,
-                    "name": track['name'],
-                    "artist": track['artists'][0]['name'],
-                    "score": track['popularity'],
-                    "is_duplicate": is_duplicate
-                })
+            # 2. Ottieni tutti gli elementi della playlist (gestione della paginazione)
+            tracks_results = sp.playlist_items(playlist_id, fields='items.track.id,items.track.name,items.track.artists,items.track.popularity,next')
+            tracks_list = []
+            
+            while tracks_results:
+                tracks_list.extend(tracks_results['items'])
+                tracks_results = sp.next(tracks_results)
+
+            # 3. Processa tutti i brani
+            for index, item in enumerate(tracks_list):
+                track = item.get('track')
+                if track and track.get('id'): 
+                    track_id = track['id']
+                    
+                    # Rilevamento duplicati
+                    is_duplicate = track_id in track_identifiers
+                    track_identifiers[track_id] = True
+
+                    all_tracks_data.append({
+                        "position": index + 1,
+                        "name": track['name'],
+                        "artist": track['artists'][0]['name'],
+                        "score": track['popularity'],
+                        "is_duplicate": is_duplicate
+                    })
+        except Exception as e:
+            return {"error": f"ID/URL Playlist non valido o errore API: {e}"}
                 
     elif analysis_type == "Artista":
         artist_id = None
@@ -234,11 +243,11 @@ def get_analysis_data(analysis_type, identifier, client_id, client_secret):
             artist = items[0]
             artist_id = artist['id']
         
-        # 3. Ottiene le top track dell'artista
+        # 3. Ottiene le top track dell'artista (non necessita paginazione, sono max 10)
         name = f"Top Tracks di {artist['name']}"
         image_url = artist['images'][0]['url'] if artist['images'] else None
         
-        # Se l'artista è stato trovato, carica le tracce. (Top Tracks non contengono duplicati per natura)
+        # Se l'artista è stato trovato, carica le tracce.
         top_tracks = sp.artist_top_tracks(artist_id)['tracks']
         
         for index, track in enumerate(top_tracks):
@@ -272,7 +281,7 @@ def _render_track_with_bar(track):
     elif score >= 20:
         score_class = 'fill-medium-bg'
     else:
-        score_class = 'fill-low-bg' # Usa il nuovo colore viola scuro per score bassi
+        score_class = 'fill-low-bg' # Viola scuro per score bassi
         
     name_class = 'low-track-name' if score < 20 else ''
     
