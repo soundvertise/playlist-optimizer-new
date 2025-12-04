@@ -30,14 +30,16 @@ st.markdown("""
         --accent-gradient: linear-gradient(90deg, #7b2cbf 0%, #00bfff 100%); /* Gradiente Bottone */
         --text-color: #ffffff;
         --text-secondary: #a0a0b0;
-        --low-score-color: #6a1a8c; /* NUOVO: Viola Scuro Intenso per score critici */
+        --critical-low-color: #3b0764; /* NUOVO: Viola Ultra Scuro (0-19) */
+        --low-score-color: #6a1a8c; /* Viola Scuro Intenso (20-39) */
         --duplicate-color: #ff9900; /* Arancione per i duplicati */
+        --duplicate-row-bg: rgba(255, 153, 0, 0.1); /* Sfondo chiaro per la riga duplicata */
     }
 
     /* Stili Generali */
     [data-testid="stAppViewContainer"] { background-color: var(--bg-color); color: var(--text-color); }
     
-    /* Stile Input e Focus */
+    /* Input e Focus */
     .stTextInput > div > div > input { 
         background-color: var(--card-bg); 
         color: var(--text-color); 
@@ -46,8 +48,8 @@ st.markdown("""
         transition: border-color 0.3s;
     }
     .stTextInput > div > div > input:focus {
-        border-color: var(--accent-blue); /* Bordo azzurro al focus */
-        box-shadow: 0 0 5px rgba(0, 191, 255, 0.5); /* Sottile glow azzurro */
+        border-color: var(--accent-blue);
+        box-shadow: 0 0 5px rgba(0, 191, 255, 0.5);
     }
     
     /* Stile Card con Ombreggiatura Profonda */
@@ -56,111 +58,124 @@ st.markdown("""
         border: 1px solid var(--border-color); 
         border-radius: 12px; 
         padding: 25px;
-        margin-bottom: 25px; /* Spaziatura maggiore tra le card */
-        /* Ombreggiatura più profonda, stile Soundvertise */
+        margin-bottom: 25px;
         box-shadow: 0 8px 30px rgba(0, 0, 0, 0.7), 0 0 2px rgba(157, 78, 221, 0.2); 
     }
     
-    /* Titolo H1 (Stile Neon Moderno) */
+    /* Titolo H1 */
     h1 { 
-        background: linear-gradient(90deg, #7b2cbf 0%, #00bfff 100%); 
+        background: var(--accent-gradient); 
         -webkit-background-clip: text; 
         -webkit-text-fill-color: transparent; 
-        text-align: center; 
-        font-weight: 800; 
-        font-size: 3rem;
-        margin-bottom: 20px;
-        text-shadow: 0 0 20px rgba(157, 78, 221, 0.8); /* Glow più intenso */
+        text-shadow: 0 0 20px rgba(157, 78, 221, 0.8);
     }
     
     /* Bottone Principale con Animazione */
     .stButton > button { 
         background: var(--accent-gradient); 
-        color: white; 
         transition: all 0.3s ease;
     }
     .stButton > button:hover {
-        box-shadow: 0 0 25px rgba(0, 191, 255, 0.7); /* Neon glow azzurro potente */
+        box-shadow: 0 0 25px rgba(0, 191, 255, 0.7);
         transform: scale(1.02);
     }
     
-    /* Score Display Generale */
+    /* Score Display Generale (Colori per i range) */
     .score-badge-good { color: var(--accent-blue); font-size: 3.5rem; font-weight: bold; }
-    /* Correggi colore per bad score usando viola scuro per coerenza estetica */
     .score-badge-bad { color: var(--accent-purple); font-size: 3.5rem; font-weight: bold; }
 
-    /* Stile LISTA DETTAGLIO (Emulazione Colonna) */
+    /* Stile LISTA DETTAGLIO */
     .track-item-clean {
         display: grid;
-        grid-template-columns: 50px 45% 45px; /* Posizione | Artista/Brano | Score */
+        grid-template-columns: 50px auto minmax(130px, 160px);
         align-items: center;
         padding: 10px 0; 
         border-bottom: 1px solid #2a2d3e;
         transition: background-color 0.2s;
     }
-    .track-item-clean:hover {
-        background-color: #1a1c28; /* Sfondo scuro al passaggio del mouse */
+    .track-item-clean.is-duplicate {
+        background-color: var(--duplicate-row-bg);
+        border-left: 5px solid var(--duplicate-color);
+        padding-left: 10px;
     }
     .track-list-header {
         display: grid;
-        grid-template-columns: 50px 45% 45px; /* Deve corrispondere a track-item-clean */
+        grid-template-columns: 50px auto minmax(130px, 160px); 
         color: var(--accent-blue);
         font-weight: bold;
         padding: 0 0 10px 0;
-        border-bottom: 2px solid var(--accent-purple); /* Sottolineatura header */
+        border-bottom: 2px solid var(--accent-purple);
         margin-bottom: 10px;
         font-size: 0.9rem;
     }
     
-    .track-name-artist {
-        margin-left: 10px;
-    }
     .track-score-value-clean {
         font-size: 1.2rem;
         font-weight: bold;
-        color: var(--text-color); /* Bianco fisso */
-        min-width: 50px;
-        text-align: right;
+        color: var(--text-color); 
         padding: 5px 10px;
         border-radius: 6px;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4); 
     }
     
-    /* Colori del punteggio (solo sfondo del numero) */
-    .fill-high-bg { background-color: var(--accent-blue); } /* Azzurro */
-    .fill-medium-bg { background-color: var(--accent-purple); } /* Viola */
-    .fill-low-bg { background-color: var(--low-score-color); } /* NUOVO: Viola Scuro Intenso */
-    
-    .track-index { 
-        color: var(--accent-blue); /* Azzurro per la posizione */
-        font-weight: bold; 
-        min-width: 35px; 
-        text-align: right; 
-        font-size: 1.1rem;
+    /* Colori del punteggio (Sfondo del numero - 5 sfumature) */
+    .fill-excellent-bg { background-color: var(--accent-blue); } /* 90-100 */
+    .fill-good-bg { background-color: #4a148c; } /* NUOVO: 60-89 */
+    .fill-average-bg { background-color: var(--accent-purple); } /* 40-59 */
+    .fill-low-bg { background-color: var(--low-score-color); } /* 20-39 */
+    .fill-critical-bg { background-color: var(--critical-low-color); } /* 0-19 */
+
+    /* Barra di Progresso Dettaglio */
+    .score-bar-small {
+        width: 80px; 
+        height: 8px;
+        background-color: #2a2d3e;
+        border-radius: 4px;
+        overflow: hidden;
+        position: relative;
     }
+    .score-bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+
+    /* Colori per il Riempimento Barra (Gradienti) */
+    .bar-excellent { background: linear-gradient(90deg, #00bfff, #7b2cbf); }
+    .bar-good { background: linear-gradient(90deg, #9d4edd, #4a148c); }
+    .bar-average { background: linear-gradient(90deg, #b981f7, #9d4edd); }
+    .bar-low { background: linear-gradient(90deg, #8c42a8, #6a1a8c); }
+    .bar-critical { background: linear-gradient(90deg, #510a80, #3b0764); }
+    
+    .track-index { color: var(--accent-blue); }
     .low-track-name { color: var(--low-score-color); font-weight: bold; }
-    .duplicate-name { color: var(--duplicate-color); font-style: italic; font-weight: bold; } /* Stile duplicati */
-    
-    /* Stile Collapsible */
-    .expander-header {
-        background-color: #1a1c28;
-        border: 1px solid #3c3e50;
-        border-radius: 12px;
-        padding: 12px 20px;
-        color: var(--accent-blue); 
-        font-weight: bold;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-    }
+    .duplicate-name { color: var(--duplicate-color); font-style: italic; font-weight: bold; } 
     
     /* Score Badge Imponente (Effetto Ludopatia/Diagnosi) */
     .main-score-card {
         text-align: center;
         padding: 30px 20px;
         margin-bottom: 25px;
-        border-radius: 12px;
         background: linear-gradient(135deg, #161823 0%, #1a1c28 100%);
         border: 2px solid var(--accent-purple);
-        box-shadow: 0 0 40px rgba(157, 78, 221, 0.3); /* Grande glow viola */
+        box-shadow: 0 0 40px rgba(157, 78, 221, 0.3);
+    }
+
+    /* Barra di progresso per lo score medio */
+    .main-score-bar-wrapper {
+        width: 80%;
+        margin: 10px auto 0 auto;
+        height: 20px;
+        background-color: #2a2d3e;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    .main-score-fill {
+        height: 100%;
+        border-radius: 10px;
+        transition: width 0.5s ease;
     }
 
 </style>
@@ -203,7 +218,8 @@ def get_analysis_data(analysis_type, identifier, client_id, client_secret):
                     
                     # Rilevamento duplicati
                     is_duplicate = track_id in track_identifiers
-                    track_identifiers[track_id] = True
+                    if not is_duplicate:
+                        track_identifiers[track_id] = True
 
                     all_tracks_data.append({
                         "position": index + 1,
@@ -255,7 +271,7 @@ def get_analysis_data(analysis_type, identifier, client_id, client_secret):
                 all_tracks_data.append({
                     "position": index + 1,
                     "name": track['name'],
-                    "artist": artist['name'],
+                    "artist": track['artists'][0]['name'],
                     "score": track['popularity'],
                     "is_duplicate": False # Non applicabile alle Top Tracks
                 })
@@ -273,15 +289,25 @@ def get_analysis_data(analysis_type, identifier, client_id, client_secret):
     }
     
 def _render_track_with_bar(track):
-    """Helper function per il rendering del brano senza barre, solo numeri colorati, con colonne."""
+    """Helper function per il rendering del brano con barre sottili e numeri colorati, usando 5 sfumature."""
     score = track['score']
     
-    if score >= 60:
-        score_class = 'fill-high-bg'
+    # 1. Determinazione classi colore
+    if score >= 90:
+        score_class = 'fill-excellent-bg'
+        bar_color = 'bar-excellent'
+    elif score >= 60:
+        score_class = 'fill-good-bg'
+        bar_color = 'bar-good'
+    elif score >= 40:
+        score_class = 'fill-average-bg'
+        bar_color = 'bar-average'
     elif score >= 20:
-        score_class = 'fill-medium-bg'
+        score_class = 'fill-low-bg' 
+        bar_color = 'bar-low'
     else:
-        score_class = 'fill-low-bg' # Viola scuro per score bassi
+        score_class = 'fill-critical-bg'
+        bar_color = 'bar-critical'
         
     name_class = 'low-track-name' if score < 20 else ''
     
@@ -290,7 +316,9 @@ def _render_track_with_bar(track):
     
     duplicate_tag = " (DUPLICATO)" if track.get('is_duplicate') else ""
     duplicate_class = "duplicate-name" if track.get('is_duplicate') else name_class
-    duplicate_row_class = "is-duplicate" if track.get('is_duplicate') else "" # Classe per colorare l'intera riga
+    duplicate_row_class = "is-duplicate" if track.get('is_duplicate') else "" 
+    
+    bar_width = max(score, 3) # Larghezza minima per visualizzazione
 
     # Struttura HTML pulita (solo indice, nome e punteggio colorato)
     track_html = f"""
@@ -299,9 +327,14 @@ def _render_track_with_bar(track):
         <div class="track-name-artist">
             <span class="{duplicate_class}">{song_name}{duplicate_tag}</span> <br> <i style='color:#a0a0b0'>{artist_name}</i>
         </div>
-        <span class="track-score-value-clean {score_class}">
-            {score}
-        </span>
+        <div class="score-container-detail">
+            <div class="score-bar-small">
+                <div class="score-bar-fill {bar_color}" style="width: {bar_width}%;"></div>
+            </div>
+            <span class="track-score-value-clean {score_class}">
+                {score}
+            </span>
+        </div>
     </div>
     """
     return track_html
@@ -380,11 +413,30 @@ if 'data' in st.session_state and st.session_state['data']:
     st.markdown(f"### 📈 Risultati Analisi per: {data['name']} ({data['total_tracks']} Tracks)")
     
     score_display = 'score-badge-good' if data['avg_pop'] >= 50 else 'score-badge-bad'
+    avg_score = data['avg_pop']
+
+    # Determina il colore e la larghezza della barra principale
+    if avg_score >= 90:
+        main_bar_color = 'linear-gradient(90deg, #00bfff, #7b2cbf)' # Excellent
+    elif avg_score >= 60:
+        main_bar_color = 'linear-gradient(90deg, #9d4edd, #4a148c)' # Good
+    elif avg_score >= 40:
+        main_bar_color = 'linear-gradient(90deg, #b981f7, #9d4edd)' # Average
+    else:
+        main_bar_color = 'linear-gradient(90deg, #8c42a8, #6a1a8c)' # Low/Critical
 
     # 3.1 Punteggio Medio (Card ad alto impatto)
     st.markdown('<div class="main-score-card">', unsafe_allow_html=True)
     st.markdown("<h4 style='text-align:center; margin-bottom: 0; color: var(--text-secondary);'>PUNTEGGIO POPOLARITÀ MEDIO FINALE</h4>", unsafe_allow_html=True)
     st.markdown(f"<p style='text-align:center; margin-top: 5px;' class='{score_display}'>{data['avg_pop']}/100</p>", unsafe_allow_html=True)
+    
+    # Barra di progresso dello score medio
+    st.markdown(f"""
+    <div class="main-score-bar-wrapper">
+        <div class="main-score-fill" style="width: {avg_score}%; background: {main_bar_color};"></div>
+    </div>
+    """, unsafe_allow_html=True)
+
     st.markdown('</div>', unsafe_allow_html=True)
 
     # 3.2 Artwork Centrato sotto il Punteggio
